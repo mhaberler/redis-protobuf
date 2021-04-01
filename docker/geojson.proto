@@ -1,0 +1,59 @@
+syntax = "proto3";
+// based on https://github.com/RomanIakovlev/timeshape/blob/master/geojson-proto/src/main/protobuf/geojson.proto
+
+message FeatureCollection {
+  repeated Feature features = 1;
+}
+
+message Feature {
+  Geometry geometry = 1;
+  repeated Property properties = 2;
+}
+
+message Point {
+  repeated float  coordinates = 1;
+}
+
+message MultiPoint {
+  repeated  float  coordinates = 1;
+}
+
+message LineString {
+  repeated  float  coordinates = 1;
+}
+
+message MultiLineString {
+  repeated LineString coordinates = 1;
+}
+
+message Polygon {
+  repeated LineString coordinates = 1;
+}
+
+message MultiPolygon {
+  repeated Polygon coordinates = 1;
+}
+
+message GeometryCollection {
+  repeated Geometry geometries = 1;
+}
+
+message Geometry {
+  oneof type {
+    Point point = 1;
+    MultiPoint multiPoint = 2;
+    LineString lineString = 3;
+    MultiLineString multiLineString = 4;
+    Polygon polygon = 5;
+    MultiPolygon multiPolygon = 6;
+    GeometryCollection geometryCollection = 7;
+  }
+}
+
+message Property {
+  string key = 1;
+  oneof value {
+    string valueString = 2;
+    double valueNumber = 3;
+  }
+}
