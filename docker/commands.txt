@@ -1,0 +1,321 @@
+127.0.0.1:6379> FLUSHALL
+OK
+
+127.0.0.1:6379> pb.append test FeatureCollection.features  '{geometry: {point: {coordinates: [1,2,3]}}}'
+(integer) 1
+
+127.0.0.1:6379> pb.get test --format json FeatureCollection
+"{\"features\":[{\"geometry\":{\"point\":{\"coordinates\":[1,2,3]}}}]}"
+
+127.0.0.1:6379> pb.set test  FeatureCollection.features[0].geometry.point '{coordinates: [4,5,2]}'
+(integer) 1
+
+127.0.0.1:6379> pb.set test  FeatureCollection.features[0].geometry.point.coordinates '[4,5,2]'
+(error) ERR cannot set the whole array field
+
+127.0.0.1:6379> pb.set test  FeatureCollection.features[0].geometry.point.coordinates[0] 4711
+Could not connect to Redis at 127.0.0.1:6379: Connection refused
+
+
+redis crash log:
+
+
+
+[libprotobuf FATAL google/protobuf/generated_message_reflection.cc:103] Protocol Buffer reflection usage error:
+  Method      : google::protobuf::Reflection::SetFloat
+  Message type: Point
+  Field       : Point.coordinates
+  Problem     : Field is repeated; the method requires a singular field.
+libc++abi.dylib: terminating with uncaught exception of type google::protobuf::FatalException: Protocol Buffer reflection usage error:
+  Method      : google::protobuf::Reflection::SetFloat
+  Message type: Point
+  Field       : Point.coordinates
+  Problem     : Field is repeated; the method requires a singular field.
+
+
+=== REDIS BUG REPORT START: Cut & paste starting from here ===
+76228:M 01 Apr 2021 22:42:31.438 # Redis 6.2.1 crashed by signal: 6, si_code: 0
+76228:M 01 Apr 2021 22:42:31.438 # Killed by PID: 76228, UID: 501
+76228:M 01 Apr 2021 22:42:31.438 # Crashed running the instruction at: 0x7fff2061f462
+
+------ STACK TRACE ------
+EIP:
+0   libsystem_kernel.dylib              0x00007fff2061f462 __pthread_kill + 10
+
+Backtrace:
+0   libsystem_platform.dylib            0x00007fff20691d7d _sigtramp + 29
+1   ???                                 0x00007fff00000400 0x0 + 140733193389056
+2   libsystem_c.dylib                   0x00007fff205a0720 abort + 120
+3   libc++abi.dylib                     0x00007fff20612418 abort_message + 231
+4   libc++abi.dylib                     0x00007fff20603a65 _ZL28demangling_terminate_handlerv + 242
+5   libobjc.A.dylib                     0x00007fff204f99b9 _ZL15_objc_terminatev + 104
+6   libc++abi.dylib                     0x00007fff20611847 _ZSt11__terminatePFvvE + 8
+7   libc++abi.dylib                     0x00007fff20614167 __cxa_get_exception_ptr + 0
+8   libc++abi.dylib                     0x00007fff2061412e _ZN10__cxxabiv1L22exception_cleanup_funcE19_Unwind_Reason_CodeP17_Unwind_Exception + 0
+9   libredis-protobuf.dylib             0x000000010602a543 _ZN6google8protobuf8internal10LogMessage6FinishEv + 195
+10  libredis-protobuf.dylib             0x0000000106029759 _ZN6google8protobuf8internal11LogFinisheraSERNS1_10LogMessageE + 25
+11  libredis-protobuf.dylib             0x00000001061dd493 _ZN6google8protobuf8internal12_GLOBAL__N_126ReportReflectionUsageErrorEPKNS0_10DescriptorEPKNS0_15FieldDescriptorEPKcSA_ + 339
+12  libredis-protobuf.dylib             0x00000001061e0ea8 _ZNK6google8protobuf8internal26GeneratedMessageReflection8SetFloatEPNS0_7MessageEPKNS0_15FieldDescriptorEf + 136
+13  libredis-protobuf.dylib             0x00000001060244a3 _ZNK2sw5redis2pb10SetCommand10_set_fieldERNS1_8FieldRefIN6google8protobuf7MessageEEERKNS1_10StringViewE + 179
+14  libredis-protobuf.dylib             0x0000000106023c5f _ZNK2sw5redis2pb10SetCommand8_set_msgER14RedisModuleKeyRKNS1_4PathERKNS1_10StringViewE + 79
+15  libredis-protobuf.dylib             0x00000001060235cc _ZNK2sw5redis2pb10SetCommand4_runEP14RedisModuleCtxPP17RedisModuleStringi + 108
+16  libredis-protobuf.dylib             0x00000001060234cf _ZNK2sw5redis2pb10SetCommand3runEP14RedisModuleCtxPP17RedisModuleStringi + 15
+17  libredis-protobuf.dylib             0x000000010601a179 _ZZN2sw5redis2pb3cmd15create_commandsEP14RedisModuleCtxEN3$_18__invokeES4_PP17RedisModuleStringi + 25
+18  redis-server                        0x00000001059792c2 RedisModuleCommandDispatcher + 106
+19  redis-server                        0x000000010590ce02 call + 346
+20  redis-server                        0x000000010590daf9 processCommand + 1963
+21  redis-server                        0x000000010591e415 processCommandAndResetClient + 29
+22  redis-server                        0x000000010591e56a processInputBuffer + 252
+23  redis-server                        0x000000010599b2ba connSocketEventHandler + 219
+24  redis-server                        0x000000010590574c aeProcessEvents + 566
+25  redis-server                        0x0000000105905978 aeMain + 29
+26  redis-server                        0x000000010591151a main + 1436
+27  libdyld.dylib                       0x00007fff20668621 start + 1
+28  ???                                 0x0000000000000002 0x0 + 2
+
+------ REGISTERS ------
+76228:M 01 Apr 2021 22:42:31.439 #
+RAX:0000000000000000 RBX:000000011537de00
+RCX:00007ffeea3004d8 RDX:0000000000000000
+RDI:0000000000000307 RSI:0000000000000006
+RBP:00007ffeea300500 RSP:00007ffeea3004d8
+R8 :00007ffeea3003a0 R9 :000000000000000b
+R10:000000011537de00 R11:0000000000000246
+R12:0000000000000307 R13:0000003000000008
+R14:0000000000000006 R15:0000000000000016
+RIP:00007fff2061f462 EFL:0000000000000246
+CS :0000000000000007 FS:0000000000000000  GS:0000000000000000
+76228:M 01 Apr 2021 22:42:31.440 # (00007ffeea3004e7) -> 0000003000000020
+76228:M 01 Apr 2021 22:42:31.440 # (00007ffeea3004e6) -> 00007fff20612418
+76228:M 01 Apr 2021 22:42:31.440 # (00007ffeea3004e5) -> 00007ffeea300670
+76228:M 01 Apr 2021 22:42:31.440 # (00007ffeea3004e4) -> 00007fff206152d4
+76228:M 01 Apr 2021 22:42:31.440 # (00007ffeea3004e3) -> 00007ffeea300640
+76228:M 01 Apr 2021 22:42:31.440 # (00007ffeea3004e2) -> ffffffff00000008
+76228:M 01 Apr 2021 22:42:31.440 # (00007ffeea3004e1) -> 00007ffefffff9df
+76228:M 01 Apr 2021 22:42:31.440 # (00007ffeea3004e0) -> 00007ffeea300640
+76228:M 01 Apr 2021 22:42:31.440 # (00007ffeea3004df) -> 80b740132634000d
+76228:M 01 Apr 2021 22:42:31.440 # (00007ffeea3004de) -> 00007fff205a0720
+76228:M 01 Apr 2021 22:42:31.440 # (00007ffeea3004dd) -> 00007ffeea300540
+76228:M 01 Apr 2021 22:42:31.440 # (00007ffeea3004dc) -> 00007fff88caaae0
+76228:M 01 Apr 2021 22:42:31.440 # (00007ffeea3004db) -> 00007ffeea300520
+76228:M 01 Apr 2021 22:42:31.441 # (00007ffeea3004da) -> 00007ffeea300680
+76228:M 01 Apr 2021 22:42:31.441 # (00007ffeea3004d9) -> 0000000000000003
+76228:M 01 Apr 2021 22:42:31.441 # (00007ffeea3004d8) -> 00007fff2064d610
+
+------ INFO OUTPUT ------
+# Server
+redis_version:6.2.1
+redis_git_sha1:00000000
+redis_git_dirty:0
+redis_build_id:cfaa1431404ef25b
+redis_mode:standalone
+os:Darwin 20.3.0 x86_64
+arch_bits:64
+multiplexing_api:kqueue
+atomicvar_api:c11-builtin
+gcc_version:4.2.1
+process_id:76228
+process_supervised:no
+run_id:7377949798048c51349b6a85d5b1fc240f86c85f
+tcp_port:6379
+server_time_usec:1617309751438256
+uptime_in_seconds:425
+uptime_in_days:0
+hz:10
+configured_hz:10
+lru_clock:6697015
+executable:/Users/mah/Ballon/src/redis-protobuf/docker/redis-server
+config_file:/usr/local/etc/redis.conf
+io_threads_active:0
+
+# Clients
+connected_clients:1
+cluster_connections:0
+maxclients:10000
+client_recent_max_input_buffer:48
+client_recent_max_output_buffer:0
+blocked_clients:0
+tracking_clients:0
+clients_in_timeout_table:0
+
+# Memory
+used_memory:1166816
+used_memory_human:1.11M
+used_memory_rss:19787776
+used_memory_rss_human:18.87M
+used_memory_peak:1166816
+used_memory_peak_human:1.11M
+used_memory_peak_perc:100.18%
+used_memory_overhead:1118872
+used_memory_startup:1101344
+used_memory_dataset:47944
+used_memory_dataset_perc:73.23%
+allocator_allocated:1119424
+allocator_active:19749888
+allocator_resident:19749888
+total_system_memory:17179869184
+total_system_memory_human:16.00G
+used_memory_lua:37888
+used_memory_lua_human:37.00K
+used_memory_scripts:0
+used_memory_scripts_human:0B
+number_of_cached_scripts:0
+maxmemory:0
+maxmemory_human:0B
+maxmemory_policy:noeviction
+allocator_frag_ratio:17.64
+allocator_frag_bytes:18630464
+allocator_rss_ratio:1.00
+allocator_rss_bytes:0
+rss_overhead_ratio:1.00
+rss_overhead_bytes:37888
+mem_fragmentation_ratio:17.68
+mem_fragmentation_bytes:18668352
+mem_not_counted_for_evict:0
+mem_replication_backlog:0
+mem_clients_slaves:0
+mem_clients_normal:17456
+mem_aof_buffer:0
+mem_allocator:libc
+active_defrag_running:0
+lazyfree_pending_objects:0
+lazyfreed_objects:0
+
+# Persistence
+loading:0
+current_cow_size:0
+current_fork_perc:0.00%
+current_save_keys_processed:0
+current_save_keys_total:0
+rdb_changes_since_last_save:6
+rdb_bgsave_in_progress:0
+rdb_last_save_time:1617309650
+rdb_last_bgsave_status:ok
+rdb_last_bgsave_time_sec:-1
+rdb_current_bgsave_time_sec:-1
+rdb_last_cow_size:0
+aof_enabled:0
+aof_rewrite_in_progress:0
+aof_rewrite_scheduled:0
+aof_last_rewrite_time_sec:-1
+aof_current_rewrite_time_sec:-1
+aof_last_bgrewrite_status:ok
+aof_last_write_status:ok
+aof_last_cow_size:0
+module_fork_in_progress:0
+module_fork_last_cow_size:0
+
+# Stats
+total_connections_received:1
+total_commands_processed:13
+instantaneous_ops_per_sec:0
+total_net_input_bytes:1247
+total_net_output_bytes:329
+instantaneous_input_kbps:0.00
+instantaneous_output_kbps:0.00
+rejected_connections:0
+sync_full:0
+sync_partial_ok:0
+sync_partial_err:0
+expired_keys:0
+expired_stale_perc:0.00
+expired_time_cap_reached_count:0
+expire_cycle_cpu_milliseconds:6
+evicted_keys:0
+keyspace_hits:2
+keyspace_misses:1
+pubsub_channels:0
+pubsub_patterns:0
+latest_fork_usec:0
+total_forks:0
+migrate_cached_sockets:0
+slave_expires_tracked_keys:0
+active_defrag_hits:0
+active_defrag_misses:0
+active_defrag_key_hits:0
+active_defrag_key_misses:0
+tracking_total_keys:0
+tracking_total_items:0
+tracking_total_prefixes:0
+unexpected_error_replies:0
+total_error_replies:4
+dump_payload_sanitizations:0
+total_reads_processed:14
+total_writes_processed:13
+io_threaded_reads_processed:0
+io_threaded_writes_processed:0
+
+# Replication
+role:master
+connected_slaves:0
+master_failover_state:no-failover
+master_replid:588534d99e360b1617c46d32106a4d1f3fcf31fd
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:0
+second_repl_offset:-1
+repl_backlog_active:0
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:0
+repl_backlog_histlen:0
+
+# CPU
+used_cpu_sys:0.278651
+used_cpu_user:0.425141
+used_cpu_sys_children:0.000000
+used_cpu_user_children:0.000000
+
+# Modules
+module:name=ReJSON,ver=999999,api=1,filters=0,usedby=[],using=[],options=[]
+module:name=PB,ver=0,api=1,filters=0,usedby=[],using=[],options=[]
+
+# Commandstats
+cmdstat_auth:calls=1,usec=5,usec_per_call=5.00,rejected_calls=0,failed_calls=0
+cmdstat_flushall:calls=1,usec=1253,usec_per_call=1253.00,rejected_calls=0,failed_calls=0
+cmdstat_PB.APPEND:calls=2,usec=966,usec_per_call=483.00,rejected_calls=0,failed_calls=0
+cmdstat_PB.GET:calls=3,usec=628,usec_per_call=209.33,rejected_calls=0,failed_calls=0
+cmdstat_PB.SET:calls=6,usec=752,usec_per_call=125.33,rejected_calls=0,failed_calls=4
+
+# Errorstats
+errorstat_ERR:count=4
+
+# Cluster
+cluster_enabled:0
+
+# Keyspace
+db0:keys=1,expires=0,avg_ttl=0
+
+------ CLIENT LIST OUTPUT ------
+id=4 addr=127.0.0.1:64522 laddr=127.0.0.1:6379 fd=8 name= age=405 idle=0 flags=N db=0 sub=0 psub=0 multi=-1 qbuf=102 qbuf-free=44948 argv-mem=73 obl=0 oll=0 omem=0 tot-mem=62569 events=r cmd=PB.SET user=default redir=-1
+
+------ CURRENT CLIENT INFO ------
+id=4 addr=127.0.0.1:64522 laddr=127.0.0.1:6379 fd=8 name= age=405 idle=0 flags=N db=0 sub=0 psub=0 multi=-1 qbuf=102 qbuf-free=44948 argv-mem=73 obl=0 oll=0 omem=0 tot-mem=62569 events=r cmd=PB.SET user=default redir=-1
+argv[0]: 'pb.set'
+argv[1]: 'test'
+argv[2]: 'FeatureCollection.features[0].geometry.point.coordinates[0]'
+argv[3]: '4711'
+76228:M 01 Apr 2021 22:42:31.442 # key 'test' found in DB containing the following object:
+76228:M 01 Apr 2021 22:42:31.442 # Object type: 5
+76228:M 01 Apr 2021 22:42:31.442 # Object encoding: 0
+76228:M 01 Apr 2021 22:42:31.442 # Object refcount: 1
+
+------ MODULES INFO OUTPUT ------
+
+------ DUMPING CODE AROUND EIP ------
+Symbol: __pthread_kill (base: 0x7fff2061f458)
+Module: /usr/lib/system/libsystem_kernel.dylib (base 0x7fff20618000)
+$ xxd -r -p /tmp/dump.hex /tmp/dump.bin
+$ objdump --adjust-vma=0x7fff2061f458 -D -b binary -m i386:x86-64 /tmp/dump.bin
+------
+76228:M 01 Apr 2021 22:42:31.442 # dump of function (hexdump of 138 bytes):
+b8480100024989ca0f0573084889c7e935a2ffffc3909090b8530000024989ca0f0573084889c7e91da2ffffc3909090b8830100024989ca0f0573084889c7e905a2ffffc34585c07416554889e5e81ba2ffffc70016000000b8ffffffff5dc341b840000000e9e5c3ffff90b86a0000024989ca0f0573084889c7e9c9a1ffffc3909090b81e00000249
+Function at 0x7fff206196c6 is __error
+
+=== REDIS BUG REPORT END. Make sure to include from START to END. ===
+
+       Please report the crash by opening an issue on github:
+
+           http://github.com/redis/redis/issues
+
+  Suspect RAM error? Use redis-server --test-memory to verify it.
+
+Abort trap: 6
